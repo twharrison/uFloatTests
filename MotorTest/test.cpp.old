@@ -1,0 +1,45 @@
+#include <string.h>
+#include <stdint.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <iostream>
+#include "MotorCont.h"
+
+Motor_Control smc;
+
+int main(void)
+{
+int n = 0;
+signed short speednow = 0;
+while(1) {
+	n = smc.smcSetTargetSpeed(smc.smc_fd,640);
+	speednow = smc.smcGetVariable(smc.smc_fd,smc.SPEED);
+	printf("Speed = %i\n",speednow);
+	sleep(2);
+
+
+	n = smc.smcSetTargetSpeed(smc.smc_fd,0);
+	speednow = smc.smcGetVariable(smc.smc_fd,smc.SPEED);
+	printf("Speed = %i\n",speednow);
+	sleep(2);
+
+
+	n = smc.smcSetTargetSpeed(smc.smc_fd,-640);
+	speednow = smc.smcGetVariable(smc.smc_fd,smc.SPEED);
+	printf("Speed = %i\n",speednow);
+	sleep(2);
+
+	n = smc.smcSetTargetSpeed(smc.smc_fd,0);
+	speednow = smc.smcGetVariable(smc.smc_fd,smc.SPEED);
+	printf("Speed = %i\n",speednow);
+	sleep(2);
+}
+
+	return(0);
+
+}
