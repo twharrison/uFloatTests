@@ -8,7 +8,7 @@
 
 Motor_Control::Motor_Control(void)
 {
-	conv_factor = 0.000006576;
+	conv_factor = 1;
 	smcBegin();
 }
 

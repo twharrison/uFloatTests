@@ -10,7 +10,6 @@
 #include <unistd.h>
 #include <iostream>
 #include <signal.h>
-#include "ADS1115.h"
 #include "MotorCont.h"
 #include "eqep.h"
 #include "Periodic.h"
@@ -108,13 +107,16 @@ int absPosMove(double setpoint, int cycle, int delay)
 			P_err = e0;
 			//u = (kp*P_err + kd*D_err + ki*I_err)*30000;
 			u = (kp*P_err)*30000;
-			cout << u << endl;
-
+			
 			if(u>3200) u=3200;
-			else if(u>0 && u<800) u = 800;
-			else if(u<0 && u>-800) u = -800;
-			else if(u<-3200) u=-3200;
+			
+			//CHANGE VALUES HERE
+			else if(u>0 && u<1400) u = 1400;
+			else if(u<0 && u>-1400) u = -1400;
 
+
+			else if(u<-3200) u=-3200;
+			cout << "U = " << u << endl;
 			double errorS = fabs(cp-sp1)/fabs(pinit-setpoint)*100;
 
 			//cout << errorS << flush;
@@ -203,9 +205,19 @@ int main(void)
 	//Set encoder period for polling (not 100% necessary, but put in just in case)
 	eqep0.set_period(100000000L);
 
-	//ads.begin();
+	//Get Motor Gear Ratio for testing different motors
+	system("clear");
+	
+	cout << "What is the Current Motor's gear ration X:1? (Only enter integer for X)..." << flush;
+	double gearRatio;
+	cin >> gearRatio;
 
-	int16_t adc0, adc2;	
+	smc.conv_factor = 1.0/12.0*1.0/gearRatio*1.0/48.0;
+
+	cout << "Conversion factor for current motor is " << smc.conv_factor << endl << endl;
+	sleep(5);
+
+		
 
 	//Infinite while loop to run motor tests
 	while(1)
@@ -213,7 +225,7 @@ int main(void)
 		exitCheck = 0;	  //Set exitCheck to 0
 		system("clear");  //Clears screen after each "test" so screen doesn't clutter
 
-		cout << endl << endl << "uFloat Motor Test Program..."  << endl << endl;
+		cout << endl << endl <<"uFloat Motor Test Program..."  << endl << endl;
 		cout << "Test Options...enter number corresponding to desired" << endl;
 		cout << "test option and then press the Enter key!" << endl << endl;
 
@@ -247,8 +259,8 @@ int main(void)
 				struct tm tm = *localtime(&t);
 
 				//Create log file for cycle
-				char cyclefilename[100];
-				int filenamesize = snprintf(cyclefilename,100,"/root/MotorTest/Logs/Cycle_Log_%d-%02d-%02d_%02d%02d%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+				char cyclefilename[150];
+				int filenamesize = snprintf(cyclefilename,150,"/root/uFloatTests/MotorTest/Logs/Cycle_Log_%d-%02d-%02d_%02d%02d%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 				pCycleFile = fopen(cyclefilename,"a");
 				if(pCycleFile == NULL)
 				{
