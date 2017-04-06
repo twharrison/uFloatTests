@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "serialPort.h"
 
 #define SMC_DEVICE "/dev/ttyS2" //Beaglebone Black serial port
 //#define _POSIX_SOURCE 1 /* POSIX compliant source */
@@ -47,22 +48,27 @@ class Motor_Control
    
 		Motor_Control(void); // Constructor when using HardwareSerial
 		int smcBegin(void);
-		int smcGetVariable(int fd,unsigned char variableId);
-		signed short smcGetTargetSpeed(int fd);
-		int smcGetErrorStatus(int fd);
-		int smcExitSafeStart(int fd);		
-		int smcSetTargetSpeed(int fd, int speed);
+		int smcGetVariable(unsigned char variableId);
+		signed short smcGetTargetSpeed(void);
+		int smcGetErrorStatus(void);
+		int smcExitSafeStart(void);		
+		int smcSetTargetSpeed(int speed);
+		int smcGetLimitStatus(void);
+		int smcMoveToLimit(int dir, uint32_t speed = 3200);
 
 		//Calculates CRC of message to be sent
 		unsigned char getCRC(unsigned char message[], unsigned char length);
-	    	const unsigned char CRC7_POLY = 0x91;
+	    const unsigned char CRC7_POLY = 0x91;
 
 		int smc_fd;		
 		double conv_factor;
 		
    
-   private:
+   	private:
 
+	protected:
+
+		serialPort port;
 	
 
 };

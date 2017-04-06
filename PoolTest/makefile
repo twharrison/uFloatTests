@@ -1,4 +1,4 @@
 all:
-	g++ -o TEST i2cTest.cpp Bar30.cpp BNO055.cpp BME280.cpp Periodic.c -std=c++11 -lpthread
+	g++ -o Pool_test PoolTest_master.cpp Bar30.cpp BNO055.cpp BME280.cpp MotorCont.cpp eqep.cpp Periodic.c serialPort.cpp -std=c++11 -lpthread
 clean:
-	$(RM) TEST
+	$(RM) Pool_test

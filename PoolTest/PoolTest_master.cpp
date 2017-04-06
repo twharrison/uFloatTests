@@ -30,15 +30,14 @@
 #include "MotorCont.h"
 #include "eqep.h"
 #include "PoolTest.h" 
-
-//Define used namespaces
 using namespace std;
 
 //Instantiate classes for all devices
-BNO055 bno = BNO055();  // IMU
+testConfig config;              // Test Configuration
+BNO055 bno = BNO055();          // IMU
 BME280 atmoSensor;		// Internal condition monitor: pressure, temp, relative humidity 
 MS5837 presSensor;		// External pressure sensor
-Motor_Control smc;      // Motor Controller
+Motor_Control smc;              // Motor Controller
 eQEP eqep0(eQEP0, eQEP::eQEP_Mode_Absolute);  // Quadrature decoder 
 
 //Date buffer to store deployment date for data logging.
@@ -48,68 +47,18 @@ char _date_[50];
 FILE * pCycleFile;
 int exitCheck = 0;
 
-///////////      MAIN PROGRAM     ///////////
-int main(void)
-{
-	// Intialize - Start recording data
-	//Create sensor thread objects (Only IMU is threaded since it is polled)
-	pthread_t IMU_Thread;
-	pthread_t BAR30_Thread;
-	pthread_t ATMO_Thread;
+// Motor variable initializations
+int32_t v = 0;  // Target speed. 
+int32_t l = 0;  // Limit status
+double lim_x = 0;  // Limit Position
 
-	//Set encoder period for polling (not 100% necessary, but put in just in case)
-	eqep0.set_period(100000000L);
-
-	//Set Motor Gear Ratio
-	smc.conv_factor = 1.0/12.0*1.0 / pool_test.gearRatio*1.0 / 48.0;
-
-	//Start thread objects
-	pthread_create(&IMU_Thread, NULL, &IMU_ReadLog, NULL);
-	pthread_create(&BAR30_Thread, NULL, &BAR30_ReadLog, NULL);
-	pthread_create(&ATMO_Thread, NULL, &BME280_ReadLog, NULL);
-	sleep(5);
-	cout << "THREADS CREATED" << endl;
-
-	// Command motor fully extend, fully retract: get
-
-
-
-	// Delay to place in pool
-	sleep(pool_test.delay0)
-
-	// Start Yoyo test
-	int ct = yoyoTest(pool_test.cycles, pool_test.delay1, pool_test.delay2)
-		
-	
-	// Save Log (maybe everything is directly written and this is redundant)
-
-	// End
-}
 
 /////////     MOTOR  FUNCTIONS     /////////////
 
-// YoYo test function
-int yoyoTest(int cycles, int delay1, int delay2, double speed)
-{
-	//Loop through once for each cycle
-	for (int i = 0; i<cycles; i++)
-	{
-		// Command decent
-		// Wait K1_seconds
-		// Command rise
-		// Wait K2_Seconds
 
-		int a = absPosMove(dist, 1, delay1);
-		//usleep(delay*1000);
-		a = absPosMove(0, 1, delay1);
-		//usleep(delay*1000);
-	}
-	//Make sure speed is set to zero before exiting cycle test
-	int n = smc.smcSetTargetSpeed(smc.smc_fd, 0);
-	return 0;
-}
 
 //Motor Move PID function
+// Delay is in millisec
 int absPosMove(double setpoint, int cycle, int delay)
 {
 	unsigned int periodTime = 20000;
@@ -155,7 +104,7 @@ int absPosMove(double setpoint, int cycle, int delay)
 
 		if (exitCheck == 1)
 		{
-			n = smc.smcSetTargetSpeed(smc.smc_fd, 0);
+			n = smc.smcSetTargetSpeed(0);
 			return 0;
 		}
 
@@ -196,7 +145,7 @@ int absPosMove(double setpoint, int cycle, int delay)
 		{
 			u = 0;
 		}
-		n = smc.smcSetTargetSpeed(smc.smc_fd, u);
+		n = smc.smcSetTargetSpeed(u);
 		if (cycle == 1)
 		{
 			//adc0 = ads.readADC_SingleEnded(0);
@@ -238,11 +187,67 @@ int absPosMove(double setpoint, int cycle, int delay)
 		numDelayCycles++;
 		wait_period(&info);
 	}
-	n = smc.smcSetTargetSpeed(smc.smc_fd, 0);
+	n = smc.smcSetTargetSpeed(0);
 	return 0;
 }
 
+// YoYo test function
+int yoyoTest(int cycles, int delay, double x_pos, double x_neg)
+{
+	//Loop through once for each cycle
+	for (int i = 0; i<cycles; i++)
+	{
+                
+                // Move Down
+		int a = absPosMove(x_neg, 1, delay);
+		//usleep(delay*1000);
+                
+                // Move Up
+		a = absPosMove(x_pos, 1, delay);
+		//usleep(delay*1000);
+	}
+	//Make sure speed is set to zero before exiting cycle test
+	int n = smc.smcSetTargetSpeed(0);
+	return 0;
+}
 
+// Initial limit find
+void getMotorLimits(double &lim_x) {
+    int lim_flag = 0;
+    
+    // Move Fully In
+    double x_now = eqep0.get_position(false);
+    cout << "Initial position is " << x_now << endl;
+    cout << "Moving piston in" << endl;
+    
+    lim_flag = smc.smcMoveToLimit(-1, 3200);
+    if(lim_flag == -1){
+        //Set encoder to 0
+        eqep0.set_position(0);
+        x_now = eqep0.get_position(false);
+        cout << "Current position is: " << x_now << endl;
+    }
+    cout << "Limit flag is " << lim_flag << endl;
+    
+    // Move Fully Out
+    cout << "Moving piston out" << endl;
+    lim_flag = smc.smcMoveToLimit(1, 3200);
+    if(lim_flag == 1){
+        //Get encoder value of outer limit
+        x_now = eqep0.get_position(false);
+        cout << "Current position is: " << x_now << endl;
+    }
+    lim_x = x_now;
+    cout << "Limit flag is " << lim_flag << endl;
+            
+    /* Calc Center position
+    double half_x = lim_x/2;
+    cout << "Halfway mark is: " << half_x << endl;
+    cout << "Moving piston to half-way" << endl;
+    n = absPosMove(half_x*smc.conv_factor,0,0);
+     */
+    
+}
 /////////     SENSOR FUNCTIONS    ///////////   
 
 // This is the fucntion that will be put into its own thread for reading and logging the IMU data at 10Hz
@@ -333,4 +338,76 @@ void *BAR30_ReadLog(void*)
 	
 }
 
+///// CONFIGURATION /////
+void loadConfig(testConfig& config) {
+    ifstream fin("test_config.txt");
+    string line;
+    // Get each line
+    while (getline(fin, line)) {
+        // Find the first substring following delimeter = in each line
+        istringstream sin (line.substr(line.find("=") + 1));
+        // Find test indicating the setting
+        if (line.find("gear_ratio") != -1)
+            sin >> config.gear_ratio;
+        else if (line.find("num_cycles") != -1)
+            sin >> config.num_cycles;
+        else if (line.find("start_delay") != -1)
+            sin >> config.start_delay;
+        else if (line.find("surface_delay") != -1)
+            sin >> config.surface_delay;
+        else if (line.find("ground_delay") != -1)
+            sin >> config.ground_delay;
+        else if (line.find("pct_pos") != -1)
+            sin >> config.pct_pos;
+        else if (line.find("pct_neg") != -1)
+            sin >> config.pct_neg;
+    }
+}
 
+
+///////////      MAIN PROGRAM     ///////////
+int main(void)
+{
+    // Parse  test configuration
+    cout << "Loading test config " << endl;
+    loadConfig(config);
+    cout << "Test config loaded " << endl;
+
+    // Intialize - Start recording data
+    //Create sensor thread objects (Only IMU is threaded since it is polled)
+    pthread_t IMU_Thread;
+    pthread_t BAR30_Thread;
+    pthread_t ATMO_Thread;
+
+    //Set encoder period for polling (not 100% necessary, but put in just in case)
+    eqep0.set_period(100000000L);
+
+    //Set Motor Gear Ratio
+    smc.conv_factor = 1.0/12.0*1.0 / config.gear_ratio*1.0 / 48.0;
+
+    //Start thread objects
+    pthread_create(&IMU_Thread, NULL, &IMU_ReadLog, NULL);
+    pthread_create(&BAR30_Thread, NULL, &BAR30_ReadLog, NULL);
+    pthread_create(&ATMO_Thread, NULL, &BME280_ReadLog, NULL);
+    usleep(1000000);
+    cout << "Sensor Threads Created" << endl;
+
+    // Command motor fully retract, fully extend
+    getMotorLimits(lim_x);
+
+    // Delay to place in pool
+    cout << "Waiting for you to put me in water..." << endl;
+    usleep(config.start_delay*1000000);
+
+    // Start Yoyo test
+    double position_pos = lim_x*(0.5+config.pct_pos/100)*smc.conv_factor;
+    double position_neg = lim_x*(0.5-config.pct_neg/100)*smc.conv_factor;
+    
+    cout << "Starting Yoyo test..." << endl;
+    
+    int ct = yoyoTest(config.num_cycles, config.surface_delay*1000, position_pos, position_neg);
+
+    cout << "Test complete. Nice work!!" << endl; 
+    // End
+    return 0;
+}

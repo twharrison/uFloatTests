@@ -1,0 +1,10 @@
+Pool Configuration File
+// Each variable is a member of the testConfig structure
+
+gear_ratio = 264
+num_cycles = 2
+start_delay = 10    // sec
+surface_delay = 5  // sec
+ground_delay = 5   // sec
+pct_pos = 10		// Amount of piston throw to make negative
+pct_neg = 10 		// Amount of piston throw to make positive
