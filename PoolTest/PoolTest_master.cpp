@@ -46,7 +46,7 @@ char _date_[50];
 
 //File Pointers
 FILE *pCycleFile;
-FILE *masterLog;
+FILE *pMasterLog; 
 int exitCheck = 0;
 time_t t = time(NULL);
 
@@ -55,7 +55,7 @@ time_t t = time(NULL);
 // Motor variable initializations
 int32_t v = 0;  // Target speed. 
 int32_t l = 0;  // Limit status
-double lim_x = 0;  // Limit Position
+//ouble lim_x = 0;  // Limit Value
 
 
 
@@ -221,7 +221,7 @@ int yoyoTest(int cycles, int delay1, double x_pos, double x_neg)
 }
 
 // Initial limit find
-void getMotorLimits(double &lim_x) {
+int getMotorLimits(double* plim_x){
     int lim_flag = 0;
     
     // Move Fully In
@@ -246,7 +246,7 @@ void getMotorLimits(double &lim_x) {
         x_now = eqep0.get_position(false);
         cout << "Current position is: " << x_now << endl;
     }
-    lim_x = x_now;
+    *plim_x = x_now;
     cout << "Limit flag is " << lim_flag << endl;
             
     /* Calc Center position
@@ -255,7 +255,7 @@ void getMotorLimits(double &lim_x) {
     cout << "Moving piston to half-way" << endl;
     n = absPosMove(half_x*smc.conv_factor,0,0);
      */
-    
+    return 0;
 }
 /////////     SENSOR FUNCTIONS    ///////////   
 
@@ -377,6 +377,8 @@ void loadConfig(testConfig& config) {
 ///////////      MAIN PROGRAM     ///////////
 int main(void)
 {
+    double lim_x = 0;
+    //freopen("log_output.txt","w",stdout);
     // Parse  test configuration
     cout << "Loading test config " << endl;
     loadConfig(config);
@@ -396,17 +398,17 @@ int main(void)
           freopen(cyclefilename,"a",pCycleFile);
     }   
     
-    /*
     char masterfilename[150];
-     int filenamesize = snprintf(masterfilename,150,\
-        "/root/uFloatTests/Pool_Test/Logs/Master_%d-%02d-%02d_%02d%02d%02d.txt",\
-        tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-    masterLog = fopen(masterfilename,"a");
-    if(masterLog== NULL)
+    filenamesize = snprintf(masterfilename,150,
+        "/root/uFloatTests/Pool_Test/log_output.txt");
+    pMasterLog = fopen(masterfilename,"a");
+    if(pMasterLog== NULL)
     {
-          freopen(masterfilename,"a",masterLog);
+          freopen(masterfilename,"a",pMasterLog);
+          
+          
     }   
-    */
+   
     
     // Initialize - Start recording data
     //Create sensor thread objects (Only IMU is threaded since it is polled)
@@ -427,17 +429,14 @@ int main(void)
     usleep(900000);
     cout << "Sensor Threads Created" << endl;
 
-    // Command motor fully retract, fully extend
-    getMotorLimits(lim_x);
-
+    fprintf(pMasterLog,"Finding Motor Limits\n");
+     // Command motor fully retract, fully extend
+    int n = getMotorLimits(&lim_x);
+    fprintf(pMasterLog, "Motor Limits Found: %f \n", lim_x);
+        
     // Delay to place in pool
     cout << "Waiting for you to put me in water..." << endl;
     cout << "Delay is: " << config.start_delay << endl;
-    
-    this_thread::sleep_for(chrono::seconds(config.start_delay));
-    //for(int i=1; i< config.start_delay; i = i+1){ 
-    //usleep(900000);
-    //}
     
     // Add message to log file to check if service running correctly
     /*char msg_chk [100];
@@ -448,8 +447,10 @@ int main(void)
     */
     
     // Start Yoyo test
-    double position_pos = (0.5 +(config.pct_pos/100.0))*lim_x*smc.conv_factor;
-    double position_neg = (0.5 -(config.pct_neg/100.0))*lim_x*smc.conv_factor;
+    //double position_pos = (0.5 +(config.pct_pos/100.0))*lim_x*smc.conv_factor;
+    //double position_neg = (0.5 -(config.pct_neg/100.0))*lim_x*smc.conv_factor;
+    double position_pos = 3.2;
+    double position_neg = 3.0;
     
     cout << "Config Pct Pos " << config.pct_pos << endl;
     cout << "Config Pct Neg " << config.pct_neg << endl;
@@ -457,12 +458,14 @@ int main(void)
     cout << "Lim_x " << lim_x << endl;
     cout << "Position_neg " << position_neg << endl;
     cout << "Position_pos " << position_pos << endl;
-    
     cout << "Starting Yoyo test..." << endl;
     
-    int ct = yoyoTest(config.num_cycles, config.surface_delay*1000, position_pos, position_neg);
+    
+    fprintf(pMasterLog, "Starting Yoyo Test... \n");
+    int ct = yoyoTest(config.num_cycles, config.surface_delay*500, position_pos, position_neg);
 
     cout << "Test complete. Nice work!!" << endl; 
+    fprintf(pMasterLog, "Finished Test. %i \n", ct);
     // End
     return 0;
 }
