@@ -43,14 +43,23 @@ eQEP eqep0(eQEP0, eQEP::eQEP_Mode_Absolute);  // Quadrature decoder
 //Date buffer to store deployment date for data logging.
 char _date_[50];
 
+
 //File Pointers
-FILE * pCycleFile;
+FILE *pCycleFile;
+FILE *masterLog;
 int exitCheck = 0;
+time_t t = time(NULL);
+
+
 
 // Motor variable initializations
 int32_t v = 0;  // Target speed. 
 int32_t l = 0;  // Limit status
 double lim_x = 0;  // Limit Position
+
+
+
+
 
 
 /////////     MOTOR  FUNCTIONS     /////////////
@@ -130,7 +139,7 @@ int absPosMove(double setpoint, int cycle, int delay)
 
 
 			else if (u<-3200) u = -3200;
-			cout << "U = " << u << endl;
+			//cout << "U = " << u << endl;
 			double errorS = fabs(cp - sp1) / fabs(pinit - setpoint) * 100;
 
 			//cout << errorS << flush;
@@ -192,22 +201,22 @@ int absPosMove(double setpoint, int cycle, int delay)
 }
 
 // YoYo test function
-int yoyoTest(int cycles, int delay, double x_pos, double x_neg)
+int yoyoTest(int cycles, int delay1, double x_pos, double x_neg)
 {
 	//Loop through once for each cycle
 	for (int i = 0; i<cycles; i++)
 	{
                 
                 // Move Down
-		int a = absPosMove(x_neg, 1, delay);
+		int a = absPosMove(x_neg, 1, delay1);
 		//usleep(delay*1000);
                 
                 // Move Up
-		a = absPosMove(x_pos, 1, delay);
+		a = absPosMove(x_pos, 1, delay1);
 		//usleep(delay*1000);
 	}
 	//Make sure speed is set to zero before exiting cycle test
-	int n = smc.smcSetTargetSpeed(0);
+	int h = smc.smcSetTargetSpeed(0);
 	return 0;
 }
 
@@ -287,7 +296,7 @@ void *BME280_ReadLog(void*)
 	
 	//Create 10Hz timing for IMU thread
 	struct periodic_info info_atmo;
-	make_periodic (1000000, &info_atmo);
+	make_periodic (100000, &info_atmo);
 
 	atmoSensor.settings.commInterface = I2C_MODE;
 	atmoSensor.settings.I2CAddress = 0x77;
@@ -372,8 +381,34 @@ int main(void)
     cout << "Loading test config " << endl;
     loadConfig(config);
     cout << "Test config loaded " << endl;
-
-    // Intialize - Start recording data
+    
+    // Initialize log file
+    // Log File Initialization
+    
+    struct tm tm = *localtime(&t);
+    char cyclefilename[150];
+    int filenamesize = snprintf(cyclefilename,150,\
+        "/root/uFloatTests/Pool_Test/Logs/Cycle_Log_%d-%02d-%02d_%02d%02d%02d.txt",\
+        tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    pCycleFile = fopen(cyclefilename,"a");
+    if(pCycleFile == NULL)
+    {
+          freopen(cyclefilename,"a",pCycleFile);
+    }   
+    
+    /*
+    char masterfilename[150];
+     int filenamesize = snprintf(masterfilename,150,\
+        "/root/uFloatTests/Pool_Test/Logs/Master_%d-%02d-%02d_%02d%02d%02d.txt",\
+        tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    masterLog = fopen(masterfilename,"a");
+    if(masterLog== NULL)
+    {
+          freopen(masterfilename,"a",masterLog);
+    }   
+    */
+    
+    // Initialize - Start recording data
     //Create sensor thread objects (Only IMU is threaded since it is polled)
     pthread_t IMU_Thread;
     pthread_t BAR30_Thread;
@@ -389,7 +424,7 @@ int main(void)
     pthread_create(&IMU_Thread, NULL, &IMU_ReadLog, NULL);
     pthread_create(&BAR30_Thread, NULL, &BAR30_ReadLog, NULL);
     pthread_create(&ATMO_Thread, NULL, &BME280_ReadLog, NULL);
-    usleep(1000000);
+    usleep(900000);
     cout << "Sensor Threads Created" << endl;
 
     // Command motor fully retract, fully extend
@@ -397,11 +432,31 @@ int main(void)
 
     // Delay to place in pool
     cout << "Waiting for you to put me in water..." << endl;
-    usleep(config.start_delay*1000000);
-
+    cout << "Delay is: " << config.start_delay << endl;
+    
+    this_thread::sleep_for(chrono::seconds(config.start_delay));
+    //for(int i=1; i< config.start_delay; i = i+1){ 
+    //usleep(900000);
+    //}
+    
+    // Add message to log file to check if service running correctly
+    /*char msg_chk [100];
+    uint8_t msg[100];
+    char* msgptr = (char*)msg;
+    int nn = snprintf((char *)msg, 100, "%s.%06ld,%f\n", tmbuf, tval_before.tv_usec, cp);
+    fwrite(msgptr, sizeof(char), nn, masterLog);
+    */
+    
     // Start Yoyo test
-    double position_pos = lim_x*(0.5+config.pct_pos/100)*smc.conv_factor;
-    double position_neg = lim_x*(0.5-config.pct_neg/100)*smc.conv_factor;
+    double position_pos = (0.5 +(config.pct_pos/100.0))*lim_x*smc.conv_factor;
+    double position_neg = (0.5 -(config.pct_neg/100.0))*lim_x*smc.conv_factor;
+    
+    cout << "Config Pct Pos " << config.pct_pos << endl;
+    cout << "Config Pct Neg " << config.pct_neg << endl;
+    cout << "SMS Conv Factor " << smc.conv_factor << endl;
+    cout << "Lim_x " << lim_x << endl;
+    cout << "Position_neg " << position_neg << endl;
+    cout << "Position_pos " << position_pos << endl;
     
     cout << "Starting Yoyo test..." << endl;
     

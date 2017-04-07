@@ -1,8 +1,8 @@
 struct testConfig
 {
-	int start_delay;    //[msec] Delay before starting yoyo cycles
-	int surface_delay;  //[msec] Delay at bottom of yoyo cycles
-	int ground_delay;   //[msec] Delay at top of yoyo cycles
+	long start_delay;    //[sec] Delay before starting yoyo cycles
+	long surface_delay;  //[sec] Delay at bottom of yoyo cycles
+	long ground_delay;   //[sec] Delay at top of yoyo cycles
 	int num_cycles;     //[] Number of cycles to run
 	double gear_ratio;  //[] Gear ratio for of the gearbox used 1/[N]
 	double speed;       // Generic max speed for motor. 

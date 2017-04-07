@@ -48,7 +48,7 @@ MS5837::MS5837() {
   	struct tm tm = *localtime(&t);
 
   	int filenamess   = snprintf(presfile,50,"PRES_Log_%d-%02d-%02d_%02d%02d%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-  	int filenamesize = snprintf(presfilename,100,"/root/uFloatTests/i2cFullTest/logs/PRES_Log_%d-%02d-%02d_%02d%02d%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+  	int filenamesize = snprintf(presfilename,100,"/root/uFloatTests/Pool_Test/Logs/PRES_Log_%d-%02d-%02d_%02d%02d%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 
   	pPRESFile = fopen(presfilename,"a");
   	if(pPRESFile == NULL)
@@ -76,7 +76,7 @@ void MS5837::readlog(void)
 	char buffer[50];
 	memset(buffer,'\0',sizeof(buffer));
 	char* bufptr = buffer;
-	int txo = snprintf(buffer,150,"%s.%06ld,%.2f,%.2f,%.2f\n"
+	int txo = snprintf(buffer,150,"%s.%06ld,%.6f,%.6f,%.6f\n"
 		,tmbuf,tval_before_pres.tv_usec,pres,temp,depth);
 
 	//printf("%s",buffer);

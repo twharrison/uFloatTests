@@ -64,7 +64,7 @@ void BNO055::readlog(void)
 	accel = getVector(VECTOR_ACCELEROMETER);
 	mag   = getVector(VECTOR_MAGNETOMETER);
 	gyro  = getVector(VECTOR_GYROSCOPE);
-	//printf("%.4f,%.4f,%.4f\n",euler.x(),euler.y(),euler.z());
+	//printf("%.8f,%.8f,%.8f\n",euler.x(),euler.y(),euler.z());
 	char tmbuf[64];
 	nowtime = tval_before_imu.tv_sec;
 	nowtm = localtime(&nowtime);
@@ -73,7 +73,7 @@ void BNO055::readlog(void)
 	char buffer[150];
 	memset(buffer,'\0',sizeof(buffer));
 	char* bufptr = buffer;
-	int txo = snprintf(buffer,150,"%s.%06ld,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n"
+	int txo = snprintf(buffer,150,"%s.%06ld,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\n"
 		,tmbuf,tval_before_imu.tv_usec,euler.x(),euler.y(),euler.z(),gyro.x(),gyro.y(),gyro.z(),accel.x(),accel.y(),accel.z()
 		,mag.x(),mag.y(),mag.z());
 
@@ -95,7 +95,7 @@ bool BNO055::begin(adafruit_bno055_opmode_t mode)
 	
 
   int filenamess   = snprintf(imufile,50,"IMU_Log_%d-%02d-%02d_%02d%02d%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-  int filenamesize = snprintf(imufilename,100,"/root/uFloatTests/i2cFullTest/logs/IMU_Log_%d-%02d-%02d_%02d%02d%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+  int filenamesize = snprintf(imufilename,100,"/root/uFloatTests/Pool_Test/Logs/IMU_Log_%d-%02d-%02d_%02d%02d%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 
 
 

@@ -126,7 +126,7 @@ uint8_t BME280::begin()
   	struct tm tm = *localtime(&t);
 
   	int filenamess   = snprintf(atmofile,50,"ATMO_Log_%d-%02d-%02d_%02d%02d%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-  	int filenamesize = snprintf(atmofilename,100,"/root/uFloatTests/i2cFullTest/logs/ATMO_Log_%d-%02d-%02d_%02d%02d%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+  	int filenamesize = snprintf(atmofilename,100,"/root/uFloatTests/Pool_Test/Logs/ATMO_Log_%d-%02d-%02d_%02d%02d%02d.txt", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 
   	pATMOFile = fopen(atmofilename,"a");
   	if(pATMOFile == NULL)
